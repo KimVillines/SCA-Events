@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Section 39RS — Seating Chart</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#0c1a2e;
+    --navy-2:#12233c;
+    --panel:#152a47;
+    --line:#26466f;
+    --blue:#1e5aa8;
+    --blue-bright:#3f86e0;
+    --cream:#f4efe3;
+    --gold:#e8b23b;
+    --coral:#e8623f;
+    --purple:#8b5fbf;
+    --purple-bright:#a883d4;
+    --grass:#2f7d4f;
+    --text:#eef2f8;
+    --text-dim:#9db0ca;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:radial-gradient(ellipse at 50% -10%, #16305a 0%, var(--navy) 55%);
+    color:var(--text);
+    font-family:'Inter',system-ui,-apple-system,sans-serif;
+    min-height:100vh;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:28px 20px 60px;}
+
+  header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    flex-wrap:wrap;
+    gap:16px;
+    border-bottom:1px solid var(--line);
+    padding-bottom:18px;
+    margin-bottom:26px;
+  }
+  .title-block h1{
+    font-family:'Teko',sans-serif;
+    font-weight:600;
+    font-size:52px;
+    line-height:1;
+    margin:0;
+    letter-spacing:0.5px;
+    color:var(--cream);
+  }
+  .title-block p{
+    margin:4px 0 0;
+    color:var(--text-dim);
+    font-size:14.5px;
+  }
+  .title-block p.game-line{
+    color:var(--gold);
+    font-weight:600;
+    font-size:15px;
+    margin-top:6px;
+  }
+  .sync-status{
+    font-size:12px; color:var(--text-dim); margin-top:8px;
+    display:flex; align-items:center; gap:6px;
+  }
+  .sync-status:not(:empty):before{
+    content:''; width:7px; height:7px; border-radius:50%; background:var(--grass); display:inline-block;
+  }
+  .sync-status.saving:before{background:var(--gold);}
+  .sync-status.error:before{background:var(--coral);}
+  .sync-status.local:before{background:var(--text-dim);}
+  .stat-row{display:flex; gap:22px;}
+  .stat{text-align:right;}
+  .stat .n{font-family:'Teko',sans-serif; font-size:34px; font-weight:600; color:var(--gold); line-height:1;}
+  .stat .l{font-size:12px; color:var(--text-dim); margin-top:2px;}
+
+  .layout{display:grid; grid-template-columns:300px 1fr; gap:24px; align-items:start;}
+  @media (max-width: 860px){ .layout{grid-template-columns:1fr;} }
+
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:18px;
+  }
+  .panel h2{
+    font-size:13px;
+    text-transform:none;
+    margin:0 0 12px;
+    color:var(--text-dim);
+    font-weight:600;
+    letter-spacing:0.2px;
+  }
+
+  /* guest list */
+  .add-guest{display:flex; gap:8px; margin-bottom:14px;}
+  .add-guest input{
+    flex:1; padding:9px 10px; border-radius:6px; border:1px solid var(--line);
+    background:var(--navy-2); color:var(--text); font-size:14px;
+  }
+  .add-guest input::placeholder{color:var(--text-dim);}
+  .add-guest button, .btn{
+    background:var(--blue); color:white; border:none; border-radius:6px;
+    padding:9px 14px; font-size:14px; font-weight:600; cursor:pointer;
+    transition:background .15s;
+  }
+  .add-guest button:hover, .btn:hover{background:var(--blue-bright);}
+  .btn.secondary{background:transparent; border:1px solid var(--line); color:var(--text);}
+  .btn.secondary:hover{border-color:var(--blue-bright); background:var(--navy-2);}
+  .btn.small{padding:6px 10px; font-size:12.5px;}
+  .btn.danger{background:transparent; border:1px solid #6a3030; color:#e6a3a3;}
+  .btn.danger:hover{background:#3a1a1a;}
+
+  #guestList{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px; max-height:340px; overflow-y:auto;}
+  #guestList li{
+    display:flex; align-items:center; justify-content:space-between;
+    background:var(--navy-2); border:1px solid var(--line); border-radius:6px;
+    padding:8px 10px; font-size:13.5px; cursor:grab;
+  }
+  #guestList li:active{cursor:grabbing;}
+  #guestList li .x{cursor:pointer; color:var(--text-dim); font-size:13px; padding:2px 4px;}
+  #guestList li .x:hover{color:var(--coral);}
+  .empty-note{color:var(--text-dim); font-size:13px; font-style:italic;}
+
+  .hint{font-size:12.5px; color:var(--text-dim); margin-top:12px; line-height:1.5;}
+
+  /* chart */
+  .chart-panel{overflow-x:auto; padding-bottom:6px;}
+  .field-label{
+    text-align:center; color:var(--grass); font-size:12.5px; letter-spacing:2px;
+    text-transform:uppercase; margin-bottom:16px; font-weight:600;
+  }
+  .field-label:before, .field-label:after{content:"— — —"; color:#1f4a30; margin:0 10px;}
+
+  .table-wrap{overflow-x:auto;}
+  .seat-table{border-collapse:collapse; table-layout:fixed;}
+  .seat-table td{padding:0; vertical-align:middle;}
+  .seat-table tr.data-row td{padding-top:3px; padding-bottom:3px;}
+  .label-cell{
+    text-align:center; font-family:'Teko',sans-serif; font-size:20px;
+    color:var(--gold); font-weight:600; padding-right:10px;
+  }
+  .badge-cell{padding-right:10px;}
+  .seat-cell{text-align:center;}
+  .tick-cell{
+    text-align:center; font-family:'Teko',sans-serif; font-size:10.5px;
+    font-weight:600; color:var(--text-dim); height:18px;
+  }
+  .seat{
+    width:36px; height:36px; margin:0 2px;
+    border-radius:6px 6px 3px 3px;
+    background:var(--blue);
+    border:1px solid #0d3a75;
+    display:flex; align-items:center; justify-content:center;
+    font-size:11px; color:#cfe1fb; cursor:pointer; position:relative;
+    transition:transform .1s, background .15s;
+  }
+  .seat:hover{transform:translateY(-2px); background:var(--blue-bright);}
+  .seat.filled{
+    background:var(--coral); border-color:#9c3d24; color:white; font-size:10.5px;
+    font-weight:600; text-align:center; line-height:1.05; padding:2px;
+  }
+  .seat.filled:hover{background:#f07750;}
+  .seat.group-separate{background:var(--purple); border-color:#4a2f73;}
+  .seat.group-separate:hover{background:var(--purple-bright);}
+  .seat.group-separate.filled{background:var(--gold); border-color:#8a6414; color:#2a1d05;}
+  .seat.group-separate.filled:hover{background:#f2c765;}
+  .row-badge{
+    font-size:10.5px; color:var(--purple-bright); border:1px solid var(--purple);
+    background:rgba(139,95,191,.12); border-radius:20px; padding:2px 9px;
+    white-space:nowrap; display:inline-block;
+  }
+  .seat .num-main{font-size:14px; font-weight:600; color:#eaf1ff; font-family:'Teko',sans-serif;}
+  .seat.filled .num-corner{position:absolute; top:1px; left:3px; font-size:9px; color:rgba(255,255,255,.65); font-family:'Teko',sans-serif;}
+  .seat.drop-hover{outline:2px solid var(--gold); outline-offset:1px;}
+
+  .legend{display:flex; gap:18px; margin-top:18px; font-size:12.5px; color:var(--text-dim); flex-wrap:wrap;}
+  .legend span{display:inline-flex; align-items:center; gap:6px;}
+  .swatch{width:14px; height:14px; border-radius:3px; display:inline-block;}
+
+  .footer-actions{display:flex; gap:10px; margin-top:22px; flex-wrap:wrap;}
+
+  .roster-panel{margin-top:20px;}
+  .roster-panel h2{display:flex; align-items:baseline; gap:8px;}
+  .roster-count{color:var(--text-dim); font-weight:400; font-size:12.5px;}
+  .roster-grid{
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));
+    gap:8px; margin-top:12px;
+  }
+  .roster-item{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    background:var(--navy-2); border:1px solid var(--line); border-radius:6px;
+    padding:8px 10px; font-size:13.5px;
+  }
+  .roster-item .r-name{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .roster-item .r-seat{
+    font-family:'Teko',sans-serif; font-size:13px; font-weight:600; white-space:nowrap;
+    color:var(--gold);
+  }
+  .roster-item.unassigned .r-seat{color:var(--text-dim); font-family:'Inter',sans-serif; font-weight:400; font-size:12px;}
+  .roster-item.separate .r-seat{color:var(--purple-bright);}
+
+  /* assign popover */
+  .popover{
+    position:fixed; z-index:50; background:var(--panel); border:1px solid var(--blue-bright);
+    border-radius:8px; padding:10px; box-shadow:0 10px 30px rgba(0,0,0,.5);
+    display:none; min-width:200px;
+  }
+  .popover.open{display:block;}
+  .popover input{
+    width:100%; padding:8px 9px; border-radius:6px; border:1px solid var(--line);
+    background:var(--navy-2); color:var(--text); font-size:13.5px; margin-bottom:8px;
+  }
+  .popover .row-actions{display:flex; gap:6px; justify-content:flex-end;}
+  .popover .label{font-size:11.5px; color:var(--text-dim); margin-bottom:6px;}
+
+  #fileInput{display:none;}
+
+  @media print{
+    body{background:white; color:#111;}
+    .panel.sidebar, .footer-actions{display:none !important;}
+    .layout{grid-template-columns:1fr;}
+    .seat{color:#000; border-color:#333;}
+    .seat.filled{background:#ddd !important;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="title-block">
+      <h1>Section 39RS</h1>
+      <p class="game-line">Dodgers vs Giants · September 18 @ 7:10pm</p>
+      <p>Dodger Stadium — Reserve Level, 3rd base line · Seating &amp; guest assignment</p>
+      <p id="syncStatus" class="sync-status"></p>
+    </div>
+    <div class="stat-row">
+      <div class="stat"><div class="n" id="statSeats">0</div><div class="l">seats</div></div>
+      <div class="stat"><div class="n" id="statFilled">0</div><div class="l">assigned</div></div>
+      <div class="stat"><div class="n" id="statOpen">0</div><div class="l">open</div></div>
+    </div>
+  </header>
+
+  <div class="layout">
+
+    <div class="panel sidebar">
+      <h2>Guest list</h2>
+      <div class="add-guest">
+        <input id="guestInput" type="text" placeholder="Add a name…" maxlength="40">
+        <button id="addGuestBtn">Add</button>
+      </div>
+      <ul id="guestList"></ul>
+      <p class="hint">Drag a name onto a seat, or click a seat and pick from the list. Click an assigned seat to unassign or reassign.</p>
+    </div>
+
+    <div class="panel chart-panel">
+      <div class="field-label">field side</div>
+      <div class="table-wrap"><table class="seat-table" id="seatTable"></table></div>
+      <div class="legend">
+        <span><span class="swatch" style="background:var(--blue)"></span> Open seat</span>
+        <span><span class="swatch" style="background:var(--coral)"></span> Assigned</span>
+        <span><span class="swatch" style="background:var(--purple)"></span> Open — purchased on own</span>
+        <span><span class="swatch" style="background:var(--gold)"></span> Assigned — purchased on own</span>
+      </div>
+      <div class="field-label" style="margin-top:16px; color:var(--text-dim);">concourse / aisle side</div>
+    </div>
+
+  </div>
+
+  <div class="panel roster-panel">
+    <h2>Full guest list <span class="roster-count" id="rosterCount"></span></h2>
+    <p class="hint" style="margin-top:0;">Everyone you've added stays listed here with their seat, even after you drag their name onto the chart.</p>
+    <div id="rosterList" class="roster-grid"></div>
+  </div>
+
+  <div class="footer-actions">
+    <button class="btn secondary" id="exportBtn">Export chart (.json)</button>
+    <button class="btn secondary" id="importBtn">Import chart</button>
+    <button class="btn secondary" id="printBtn">Print / save as PDF</button>
+    <input type="file" id="fileInput" accept="application/json">
+  </div>
+
+</div>
+
+<div class="popover" id="popover">
+  <div class="label" id="popoverLabel">Row A · Seat 1</div>
+  <input id="popoverInput" type="text" placeholder="Type a name…" list="guestDatalist">
+  <datalist id="guestDatalist"></datalist>
+  <div class="row-actions">
+    <button class="btn secondary small" id="popoverClear">Clear</button>
+    <button class="btn small" id="popoverSave">Save</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  const LETTERS = "ABCDEFGHJKLMNOPQRSTUVWXYZ".split(""); // skip I, matches stadium convention
+
+  // state
+  let rows = [];      // [{label:'A', seats:[{num, name|null}, ...]}]
+  let guests = [];    // ['Name', ...]  unassigned pool
+  let editingSeat = null; // {rowIndex, seatIndex}
+
+  // parse a range string like "5-9; 16-17" into [5,6,7,8,9,16,17]
+  function parseRanges(str){
+    const nums = [];
+    str.split(/[;,]/).forEach(part => {
+      part = part.trim();
+      if(!part) return;
+      const m = part.match(/^(\d+)\s*-\s*(\d+)$/);
+      if(m){
+        const start = parseInt(m[1],10), end = parseInt(m[2],10);
+        for(let n = start; n <= end; n++) nums.push(n);
+      } else {
+        const n = parseInt(part,10);
+        if(!isNaN(n)) nums.push(n);
+      }
+    });
+    return nums;
+  }
+
+  function seatsFromRanges(str, group){
+    return parseRanges(str).map(n => ({num:n, name:null, group: group || 'main'}));
+  }
+
+  // The guest's actual assigned rows and seat numbers for section 39RS.
+  // group:'separate' marks seats bought separately from the main block, for tracking.
+  const ACTUAL_TICKETS = [
+    {label:'J', ranges:'5-9; 16-17'},
+    {label:'K', ranges:'1-21'},
+    {label:'L', ranges:'3-17'},
+    {label:'M', ranges:'1-21'},
+    {label:'N', ranges:'1-19'},
+    {label:'O', ranges:'1-19'},
+    {label:'P', ranges:'12-17', group:'separate'},
+    {label:'S', ranges:'5-13; 14-15'},
+    {label:'T', ranges:'3-13; 14-15'},
+    {label:'U', ranges:'4-18'},
+    {label:'V', ranges:'1-17'}
+  ];
+
+  function defaultLayout(){
+    return ACTUAL_TICKETS
+      .slice()
+      .sort((a,b) => LETTERS.indexOf(a.label) - LETTERS.indexOf(b.label))
+      .map(r => ({label:r.label, seats:seatsFromRanges(r.ranges, r.group)}));
+  }
+
+  // ---------- shared storage (jsonblob.com — free, no signup, works on any static host) ----------
+  // How it works: the FIRST time this page loads with no ?chart=ID in the URL, it creates a
+  // new shared "blob" on jsonblob.com and rewrites the address bar to include that ID.
+  // From then on, ?chart=ID *is* the shared chart — anyone opening that exact URL sees the
+  // same seats and guest list, and any change they make saves back to that same blob.
+  const BLOB_API = 'https://jsonblob.com/api/jsonBlob';
+  let blobId = new URLSearchParams(window.location.search).get('chart');
+  let lastKnownRaw = null;
+  let storageBroken = false; // flips true if jsonblob is unreachable, so we stop hammering it
+
+  async function loadShared(){
+    if(!blobId) return null;
+    try{
+      const res = await fetch(BLOB_API + '/' + blobId, {cache:'no-store'});
+      if(!res.ok) return null;
+      return await res.text();
+    }catch(e){
+      return null;
+    }
+  }
+
+  async function createShared(initialPayload){
+    const res = await fetch(BLOB_API, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: initialPayload
+    });
+    if(!res.ok) throw new Error('create failed: ' + res.status);
+    const loc = res.headers.get('Location') || res.headers.get('location') || '';
+    const id = loc.split('/').filter(Boolean).pop();
+    if(!id) throw new Error('no blob id returned');
+    return id;
+  }
+
+  async function saveShared(){
+    if(storageBroken) return;
+    try{
+      const payload = JSON.stringify({rows, guests});
+      lastKnownRaw = payload;
+
+      if(!blobId){
+        blobId = await createShared(payload);
+        const url = new URL(window.location.href);
+        url.searchParams.set('chart', blobId);
+        window.history.replaceState(null, '', url);
+        showShareBanner(url.toString());
+      } else {
+        const res = await fetch(BLOB_API + '/' + blobId, {
+          method:'PUT',
+          headers:{'Content-Type':'application/json'},
+          body: payload
+        });
+        if(!res.ok) throw new Error('save failed: ' + res.status);
+      }
+      setSyncStatus('synced');
+    }catch(e){
+      setSyncStatus('error');
+    }
+  }
+
+  function showShareBanner(url){
+    let bar = document.getElementById('shareBanner');
+    if(!bar){
+      bar = document.createElement('div');
+      bar.id = 'shareBanner';
+      bar.style.cssText = 'background:var(--gold);color:#2a1d05;padding:10px 14px;border-radius:8px;'
+        + 'font-size:13.5px;margin-bottom:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;';
+      const wrap = document.querySelector('.wrap');
+      wrap.insertBefore(bar, wrap.firstChild);
+    }
+    bar.innerHTML = '<strong>Share this exact link</strong> — anyone who opens it sees and edits the same chart: '
+      + '<code style="background:rgba(0,0,0,.12);padding:2px 6px;border-radius:4px;word-break:break-all;">' + url + '</code>';
+    const copyBtn = document.createElement('button');
+    copyBtn.textContent = 'Copy link';
+    copyBtn.className = 'btn small';
+    copyBtn.style.marginLeft = 'auto';
+    copyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(url).then(() => { copyBtn.textContent = 'Copied!'; setTimeout(() => copyBtn.textContent = 'Copy link', 1500); });
+    });
+    bar.appendChild(copyBtn);
+  }
+
+  function setSyncStatus(state){
+    const el = document.getElementById('syncStatus');
+    if(!el) return;
+    el.classList.remove('saving','error','local');
+    if(state === 'synced') el.textContent = 'Saved · everyone with the link sees this';
+    else if(state === 'saving'){ el.textContent = 'Saving…'; el.classList.add('saving'); }
+    else if(state === 'error'){ el.textContent = 'Could not save — check your connection'; el.classList.add('error'); }
+    else if(state === 'local'){ el.textContent = 'Not connected to shared storage — changes stay on this device only'; el.classList.add('local'); }
+  }
+
+  function startPolling(){
+    setInterval(async () => {
+      if(storageBroken || !blobId) return;
+      const raw = await loadShared();
+      if(raw && raw !== lastKnownRaw){
+        try{
+          const data = JSON.parse(raw);
+          rows = data.rows;
+          guests = data.guests || [];
+          lastKnownRaw = raw;
+          render();
+        }catch(e){ /* ignore malformed remote data */ }
+      }
+    }, 4000);
+  }
+
+  async function init(){
+    if(blobId){
+      const raw = await loadShared();
+      if(raw){
+        try{
+          const data = JSON.parse(raw);
+          rows = data.rows;
+          guests = data.guests || [];
+          lastKnownRaw = raw;
+          setSyncStatus('synced');
+        }catch(e){
+          rows = defaultLayout();
+          setSyncStatus('error');
+        }
+      } else {
+        // blob id in the URL but not found (expired after 75 days of inactivity, or mistyped)
+        rows = defaultLayout();
+        setSyncStatus('error');
+      }
+    } else {
+      rows = defaultLayout();
+      try{
+        await saveShared(); // creates the blob and updates the URL + shows the share banner
+      }catch(e){
+        storageBroken = true;
+        setSyncStatus('local');
+      }
+    }
+    render();
+    startPolling();
+  }
+
+  // ---------- render ----------
+  const seatTable = document.getElementById('seatTable');
+  const guestListEl = document.getElementById('guestList');
+  const guestDatalist = document.getElementById('guestDatalist');
+  const rosterListEl = document.getElementById('rosterList');
+  const rosterCountEl = document.getElementById('rosterCount');
+
+  function render(){
+    renderRows();
+    renderGuests();
+    renderStats();
+    renderRoster();
+  }
+
+  function getMaxSeatNum(){
+    let max = 1;
+    rows.forEach(r => r.seats.forEach(s => { if(s.num > max) max = s.num; }));
+    return max;
+  }
+
+  const SEAT_COL_WIDTH = 40; // px per seat column — fixed so every row's columns line up exactly
+
+  function renderRows(){
+    const maxNum = getMaxSeatNum();
+    seatTable.innerHTML = '';
+
+    // colgroup fixes every column's width so the same seat number always
+    // occupies the same physical column, in every row, guaranteed by the browser.
+    const colgroup = document.createElement('colgroup');
+    const addCol = (widthPx) => {
+      const col = document.createElement('col');
+      col.style.width = widthPx + 'px';
+      colgroup.appendChild(col);
+    };
+    addCol(26);  // row label
+    addCol(126); // badge
+    for(let i = 0; i < maxNum; i++) addCol(SEAT_COL_WIDTH); // seat columns, one per seat number
+    seatTable.appendChild(colgroup);
+
+    // ruler row — seat 1 on the right, higher numbers to the left (facing the field)
+    const rulerRow = document.createElement('tr');
+    rulerRow.className = 'ruler-row';
+    rulerRow.appendChild(document.createElement('td'));
+    rulerRow.appendChild(document.createElement('td'));
+    for(let n = maxNum; n >= 1; n--){
+      const td = document.createElement('td');
+      td.className = 'tick-cell';
+      if(n === 1 || n === maxNum || n % 5 === 0) td.textContent = n;
+      rulerRow.appendChild(td);
+    }
+    seatTable.appendChild(rulerRow);
+
+    // data rows
+    rows.forEach((row, rIdx) => {
+      const tr = document.createElement('tr');
+      tr.className = 'data-row';
+
+      const labelTd = document.createElement('td');
+      labelTd.className = 'label-cell';
+      labelTd.textContent = row.label;
+      tr.appendChild(labelTd);
+
+      const badgeTd = document.createElement('td');
+      badgeTd.className = 'badge-cell';
+      if(row.seats.length && row.seats.every(s => s.group === 'separate')){
+        const badge = document.createElement('span');
+        badge.className = 'row-badge';
+        badge.textContent = 'purchased on own';
+        badgeTd.appendChild(badge);
+      }
+      tr.appendChild(badgeTd);
+
+      for(let n = maxNum; n >= 1; n--){
+        const td = document.createElement('td');
+        td.className = 'seat-cell';
+        const sIdx = row.seats.findIndex(s => s.num === n);
+        if(sIdx > -1){
+          const seatData = row.seats[sIdx];
+          const occupant = seatData.name;
+          const seat = document.createElement('div');
+          seat.className = 'seat' + (occupant ? ' filled' : '') + (seatData.group === 'separate' ? ' group-separate' : '');
+          seat.title = occupant ? occupant : 'Row ' + row.label + ', seat ' + n + ' — open';
+          const num = document.createElement('span');
+          num.className = occupant ? 'num num-corner' : 'num num-main';
+          num.textContent = n;
+          seat.appendChild(num);
+          if(occupant){
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = initialsOrName(occupant);
+            seat.appendChild(nameSpan);
+          }
+          seat.addEventListener('click', () => openPopover(seat, rIdx, sIdx));
+
+          // drag & drop target
+          seat.addEventListener('dragover', e => { e.preventDefault(); seat.classList.add('drop-hover'); });
+          seat.addEventListener('dragleave', () => seat.classList.remove('drop-hover'));
+          seat.addEventListener('drop', e => {
+            e.preventDefault();
+            seat.classList.remove('drop-hover');
+            const name = e.dataTransfer.getData('text/plain');
+            if(name){ assignSeat(rIdx, sIdx, name); }
+          });
+
+          td.appendChild(seat);
+        }
+        tr.appendChild(td);
+      }
+
+      seatTable.appendChild(tr);
+    });
+  }
+
+
+  function initialsOrName(name){
+    if(name.length <= 8) return name;
+    const parts = name.trim().split(/\s+/);
+    if(parts.length === 1) return name.slice(0,7)+'…';
+    return parts[0].slice(0,6) + ' ' + parts[parts.length-1][0]+'.';
+  }
+
+  function renderGuests(){
+    guestListEl.innerHTML = '';
+    guestDatalist.innerHTML = '';
+    if(guests.length === 0){
+      const li = document.createElement('li');
+      li.innerHTML = '<span class="empty-note">No unassigned guests. Add names above.</span>';
+      li.style.cursor = 'default';
+      guestListEl.appendChild(li);
+    }
+    guests.forEach((name, idx) => {
+      const li = document.createElement('li');
+      li.draggable = true;
+      li.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain', name));
+
+      const span = document.createElement('span');
+      span.textContent = name;
+      li.appendChild(span);
+
+      const x = document.createElement('span');
+      x.className = 'x';
+      x.textContent = '✕';
+      x.title = 'Remove from list';
+      x.addEventListener('click', () => { guests.splice(idx,1); render(); setSyncStatus('saving'); saveShared(); });
+      li.appendChild(x);
+
+      guestListEl.appendChild(li);
+
+      const opt = document.createElement('option');
+      opt.value = name;
+      guestDatalist.appendChild(opt);
+    });
+  }
+
+  function renderStats(){
+    let total = 0, filled = 0;
+    rows.forEach(r => { total += r.seats.length; filled += r.seats.filter(s => s.name).length; });
+    document.getElementById('statSeats').textContent = total;
+    document.getElementById('statFilled').textContent = filled;
+    document.getElementById('statOpen').textContent = total - filled;
+  }
+
+  function renderRoster(){
+    // The full roster = every unassigned guest + every guest currently in a seat.
+    // Unlike the sidebar list, names don't disappear here once they're placed.
+    const entries = [];
+    guests.forEach(name => entries.push({name, seat:null}));
+    rows.forEach(row => {
+      row.seats.forEach(s => {
+        if(s.name) entries.push({name:s.name, seat:{row:row.label, num:s.num, group:s.group}});
+      });
+    });
+    entries.sort((a,b) => a.name.localeCompare(b.name));
+
+    rosterCountEl.textContent = entries.length ? `(${entries.length})` : '';
+    rosterListEl.innerHTML = '';
+
+    if(entries.length === 0){
+      const empty = document.createElement('p');
+      empty.className = 'empty-note';
+      empty.textContent = 'No guests added yet.';
+      rosterListEl.appendChild(empty);
+      return;
+    }
+
+    entries.forEach(entry => {
+      const item = document.createElement('div');
+      item.className = 'roster-item' + (!entry.seat ? ' unassigned' : (entry.seat.group === 'separate' ? ' separate' : ''));
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'r-name';
+      nameSpan.textContent = entry.name;
+      nameSpan.title = entry.name;
+      const seatSpan = document.createElement('span');
+      seatSpan.className = 'r-seat';
+      seatSpan.textContent = entry.seat ? ('Row ' + entry.seat.row + ' · Seat ' + entry.seat.num) : 'Unassigned';
+      item.appendChild(nameSpan);
+      item.appendChild(seatSpan);
+      rosterListEl.appendChild(item);
+    });
+  }
+
+  // ---------- actions ----------
+  function assignSeat(rIdx, sIdx, name){
+    const prev = rows[rIdx].seats[sIdx].name;
+    rows[rIdx].seats[sIdx].name = name;
+    // remove from unassigned pool if present
+    const gi = guests.indexOf(name);
+    if(gi > -1) guests.splice(gi,1);
+    // if seat previously had someone, put them back in the pool
+    if(prev && prev !== name) guests.push(prev);
+    render();
+    setSyncStatus('saving');
+    saveShared();
+  }
+
+  function clearSeat(rIdx, sIdx){
+    const prev = rows[rIdx].seats[sIdx].name;
+    if(prev){ guests.push(prev); rows[rIdx].seats[sIdx].name = null; }
+    render();
+    setSyncStatus('saving');
+    saveShared();
+  }
+
+  // ---------- popover ----------
+  const popover = document.getElementById('popover');
+  const popoverLabel = document.getElementById('popoverLabel');
+  const popoverInput = document.getElementById('popoverInput');
+
+  function openPopover(seatEl, rIdx, sIdx){
+    editingSeat = {rIdx, sIdx};
+    const row = rows[rIdx];
+    popoverLabel.textContent = 'Row ' + row.label + ' · Seat ' + row.seats[sIdx].num;
+    popoverInput.value = row.seats[sIdx].name || '';
+    const rect = seatEl.getBoundingClientRect();
+    popover.style.left = Math.min(rect.left, window.innerWidth-230) + 'px';
+    popover.style.top = (rect.bottom + 8 + window.scrollY) + 'px';
+    popover.classList.add('open');
+    popoverInput.focus();
+  }
+  function closePopover(){ popover.classList.remove('open'); editingSeat = null; }
+
+  document.getElementById('popoverSave').addEventListener('click', () => {
+    if(!editingSeat) return;
+    const val = popoverInput.value.trim();
+    if(val) assignSeat(editingSeat.rIdx, editingSeat.sIdx, val);
+    closePopover();
+  });
+  document.getElementById('popoverClear').addEventListener('click', () => {
+    if(!editingSeat) return;
+    clearSeat(editingSeat.rIdx, editingSeat.sIdx);
+    closePopover();
+  });
+  popoverInput.addEventListener('keydown', e => {
+    if(e.key === 'Enter') document.getElementById('popoverSave').click();
+    if(e.key === 'Escape') closePopover();
+  });
+  document.addEventListener('click', e => {
+    if(popover.classList.contains('open') && !popover.contains(e.target) && !e.target.closest('.seat')){
+      closePopover();
+    }
+  });
+
+  // ---------- guest add ----------
+  function addGuestFromInput(){
+    const input = document.getElementById('guestInput');
+    const val = input.value.trim();
+    if(!val) return;
+    guests.push(val);
+    input.value = '';
+    render();
+    input.focus();
+    setSyncStatus('saving');
+    saveShared();
+  }
+  document.getElementById('addGuestBtn').addEventListener('click', addGuestFromInput);
+  document.getElementById('guestInput').addEventListener('keydown', e => { if(e.key === 'Enter') addGuestFromInput(); });
+
+  // ---------- export / import ----------
+  document.getElementById('exportBtn').addEventListener('click', () => {
+    const data = { section: '39RS', rows, guests, exportedAt: new Date().toISOString() };
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'section-39RS-seating-chart.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+  document.getElementById('importBtn').addEventListener('click', () => document.getElementById('fileInput').click());
+  document.getElementById('fileInput').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try{
+        const data = JSON.parse(reader.result);
+        if(data.rows){
+          rows = data.rows;
+          guests = data.guests || [];
+          render();
+          setSyncStatus('saving');
+          saveShared();
+        }
+        else alert('That file doesn\'t look like a valid seating chart export.');
+      }catch(err){ alert('Could not read that file: ' + err.message); }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+  document.getElementById('printBtn').addEventListener('click', () => window.print());
+
+  init();
+})();
+</script>
+</body>
+</html>
